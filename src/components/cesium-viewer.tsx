@@ -8,7 +8,7 @@ import { CityConfig } from "@/src/config/cities";
 Cesium.Ion.defaultAccessToken =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhODUwOGNkNS0zMTcxLTQ0MWItOTUwYy04NTNiZjNlNDgyMTkiLCJpZCI6MzcwMDc4LCJpYXQiOjE3NjU4NTg0MzR9.Fm4O3_VjyKQ5uPNTRt38X7NIuTn1p5gXp1XO2VQU6uI";
 (window as any).CESIUM_BASE_URL =
-  "https://cdn.jsdelivr.net/npm/cesium@1.136.0/Build/Cesium/";
+  "/Cesium/";
 
 
 interface BuildingInfo {
@@ -234,9 +234,18 @@ const CesiumViewer = ({ config }: CesiumViewerProps) => {
       if (!containerRef.current) return;
       let cancelled = false;
 
-      const terrainProvider = config.terrainUrl
-        ? await Cesium.CesiumTerrainProvider.fromUrl(config.terrainUrl)
-        : undefined;
+      let terrainProvider: Cesium.TerrainProvider | undefined;
+
+      if (config.useWorldTerrain) {
+        terrainProvider = await Cesium.createWorldTerrainAsync({
+          requestWaterMask: true,
+          requestVertexNormals: true,
+        });
+      } else if (config.terrainUrl) {
+        terrainProvider = await Cesium.CesiumTerrainProvider.fromUrl(
+          config.terrainUrl,
+        );
+      }
 
       const viewer = new Cesium.Viewer(containerRef.current, {
         baseLayerPicker: false,

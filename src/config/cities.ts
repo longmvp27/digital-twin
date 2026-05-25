@@ -3,6 +3,7 @@ export interface CityConfig {
   address: string;
   heightKey: string;
   terrainUrl: string | null;
+  useWorldTerrain?: boolean;
   depthTestAgainstTerrain: boolean;
   requestRenderMode: boolean;
   maximumRequestsPerServer?: number;
@@ -129,6 +130,7 @@ export const CITY_CONFIG: Record<string, CityConfig> = {
     address: "New York",
     heightKey: "measuredHeight",
     terrainUrl: null,
+    useWorldTerrain: true,
     depthTestAgainstTerrain: true,
     requestRenderMode: true,
     maximumRequestsPerServer: 18,
