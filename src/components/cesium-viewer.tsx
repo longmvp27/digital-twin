@@ -1,15 +1,66 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import * as Cesium from "cesium";
-import "cesium/Build/Cesium/Widgets/widgets.css";
+import type * as CesiumTypes from "cesium";
 import { CityConfig } from "@/src/config/cities";
 
-Cesium.Ion.defaultAccessToken =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhODUwOGNkNS0zMTcxLTQ0MWItOTUwYy04NTNiZjNlNDgyMTkiLCJpZCI6MzcwMDc4LCJpYXQiOjE3NjU4NTg0MzR9.Fm4O3_VjyKQ5uPNTRt38X7NIuTn1p5gXp1XO2VQU6uI";
-(window as any).CESIUM_BASE_URL =
-  "/Cesium/";
+type CesiumModule = typeof CesiumTypes;
 
+declare global {
+  interface Window {
+    Cesium?: CesiumModule;
+    CESIUM_BASE_URL?: string;
+  }
+}
+
+const CESIUM_BASE_URL = "/cesium/";
+const CESIUM_SCRIPT_URL = `${CESIUM_BASE_URL}Cesium.js`;
+const CESIUM_ION_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhODUwOGNkNS0zMTcxLTQ0MWItOTUwYy04NTNiZjNlNDgyMTkiLCJpZCI6MzcwMDc4LCJpYXQiOjE3NjU4NTg0MzR9.Fm4O3_VjyKQ5uPNTRt38X7NIuTn1p5gXp1XO2VQU6uI";
+
+function loadCesium(): Promise<CesiumModule> {
+  window.CESIUM_BASE_URL = CESIUM_BASE_URL;
+
+  if (window.Cesium) {
+    window.Cesium.Ion.defaultAccessToken = CESIUM_ION_TOKEN;
+    return Promise.resolve(window.Cesium);
+  }
+
+  return new Promise((resolve, reject) => {
+    let script = document.querySelector<HTMLScriptElement>(
+      `script[src="${CESIUM_SCRIPT_URL}"]`
+    );
+
+    const handleLoad = () => {
+      if (!window.Cesium) {
+        reject(new Error("Cesium global is unavailable after script load."));
+        return;
+      }
+
+      window.Cesium.Ion.defaultAccessToken = CESIUM_ION_TOKEN;
+      resolve(window.Cesium);
+    };
+
+    const handleError = () => {
+      reject(new Error(`Failed to load ${CESIUM_SCRIPT_URL}`));
+    };
+
+    const shouldAppendScript = !script;
+
+    if (!script) {
+      script = document.createElement("script");
+      script.src = CESIUM_SCRIPT_URL;
+      script.async = true;
+    }
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+
+    if (shouldAppendScript) {
+      document.head.appendChild(script);
+    }
+  });
+}
 
 interface BuildingInfo {
   id: string;
@@ -29,8 +80,9 @@ interface BuildingInfo {
 
 
 function extractBuildingInfo(
-  feature: Cesium.Cesium3DTileFeature,
-  position: Cesium.Cartesian3,
+  Cesium: CesiumModule,
+  feature: CesiumTypes.Cesium3DTileFeature,
+  position: CesiumTypes.Cartesian3,
   config: CityConfig
 ): BuildingInfo {
   const get = (key: string) => {
@@ -225,16 +277,21 @@ interface CesiumViewerProps {
 
 const CesiumViewer = ({ config }: CesiumViewerProps) => {
   const containerRef   = useRef<HTMLDivElement>(null);
-  const viewerRef      = useRef<Cesium.Viewer | null>(null);
-  const lastFeatureRef = useRef<Cesium.Cesium3DTileFeature | null>(null);
+  const viewerRef      = useRef<CesiumTypes.Viewer | null>(null);
+  const lastFeatureRef = useRef<CesiumTypes.Cesium3DTileFeature | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingInfo | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let handler: CesiumTypes.ScreenSpaceEventHandler | undefined;
+
     const init = async () => {
       if (!containerRef.current) return;
-      let cancelled = false;
 
-      let terrainProvider: Cesium.TerrainProvider | undefined;
+      const Cesium = await loadCesium();
+      if (cancelled) return;
+
+      let terrainProvider: CesiumTypes.TerrainProvider | undefined;
 
       if (config.useWorldTerrain) {
         terrainProvider = await Cesium.createWorldTerrainAsync({
@@ -246,6 +303,7 @@ const CesiumViewer = ({ config }: CesiumViewerProps) => {
           config.terrainUrl,
         );
       }
+      if (cancelled) return;
 
       const viewer = new Cesium.Viewer(containerRef.current, {
         baseLayerPicker: false,
@@ -272,13 +330,13 @@ const CesiumViewer = ({ config }: CesiumViewerProps) => {
         Cesium.RequestScheduler.maximumRequestsPerServer = config.maximumRequestsPerServer;
       }
 
-      const handler    = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      handler          = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
       const collection = new Cesium.PrimitiveCollection();
       viewer.scene.primitives.add(collection);
 
       (async () => {
         try {
-          const loadedTilesets: Cesium.Cesium3DTileset[] = [];
+          const loadedTilesets: CesiumTypes.Cesium3DTileset[] = [];
 
           await Promise.allSettled(
             config.tilesetUrls.map(async (url) => {
@@ -350,21 +408,24 @@ const CesiumViewer = ({ config }: CesiumViewerProps) => {
         const worldPos = viewer.scene.pickPosition(movement.position);
         if (!Cesium.defined(worldPos)) return;
 
-        const info = extractBuildingInfo(picked, worldPos, config);
+        const info = extractBuildingInfo(Cesium, picked, worldPos, config);
         setSelectedBuilding(info);
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-      return () => {
-        cancelled = true;
-        handler.destroy();
-        if (viewerRef.current && !viewerRef.current.isDestroyed()) {
-          viewerRef.current.destroy();
-        }
-        viewerRef.current = null;
-      };
     };
 
-    init();
+    init().catch((err) => {
+      if (!cancelled) console.error("Init error:", err);
+    });
+
+    return () => {
+      cancelled = true;
+      handler?.destroy();
+      if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+        viewerRef.current.destroy();
+      }
+      viewerRef.current = null;
+      lastFeatureRef.current = null;
+    };
   }, [config]);
 
   return (
@@ -375,7 +436,8 @@ const CesiumViewer = ({ config }: CesiumViewerProps) => {
           info={selectedBuilding}
           onClose={() => {
             setSelectedBuilding(null);
-            if (lastFeatureRef.current) {
+            const Cesium = window.Cesium;
+            if (Cesium && lastFeatureRef.current) {
               lastFeatureRef.current.color = Cesium.Color.WHITE;
               lastFeatureRef.current = null;
               viewerRef.current?.scene.requestRender();
