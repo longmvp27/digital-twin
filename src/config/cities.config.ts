@@ -11,6 +11,29 @@ export interface CityConfig {
   modelMatrixOffset?: number;
   cameraRadiusMultiplier?: number;
   tilesetUrls: string[];
+  geojsonLayers?: {
+    key: "water" | "vegetation" | "transport" | "residential";
+    url: string;
+    color: string;
+    alpha: number;
+  }[];
+  cameraApiUrl?: string;
+  showDashboard?: boolean;
+}
+
+export interface CameraDevice {
+  _id: string;
+  nameSubDevice: string;
+  latitude: string;
+  longitude: string;
+  status: number;
+  isActive: number;
+  profiles: {
+    streams: {
+      protocol: string;
+      source: string;
+    }[];
+  }[];
 }
 
 export const CITY_CONFIG: Record<string, CityConfig> = {
@@ -132,10 +155,10 @@ export const CITY_CONFIG: Record<string, CityConfig> = {
     terrainUrl: null,
     useWorldTerrain: true,
     depthTestAgainstTerrain: true,
-    requestRenderMode: true,
+    requestRenderMode: false,
     maximumRequestsPerServer: 18,
     maximumScreenSpaceError: 16,
-    modelMatrixOffset: -30,
+    modelMatrixOffset: -30.0,
     cameraRadiusMultiplier: 2.5,
     tilesetUrls: [
       "https://cdn.yoolife.com.vn/models/DA13_3D_Buildings_Merged/tileset.json",
@@ -159,5 +182,55 @@ export const CITY_CONFIG: Record<string, CityConfig> = {
       "https://cdn.yoolife.com.vn/models/DA6_3D_Buildings_Merged/tileset.json",
       "https://cdn.yoolife.com.vn/models/DA18_3D_Buildings_Merged/tileset.json",
     ],
+  },
+
+  GiangVo: {
+    name: "Giảng Võ",
+    address: "Phường Giảng Võ, Ba Đình, Hà Nội",
+    heightKey: "height",
+    terrainUrl: null,
+    useWorldTerrain: true,
+    depthTestAgainstTerrain: true,
+    requestRenderMode: false,
+    tilesetUrls: [
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/250f_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/235g_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/250b_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/235h_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/251d_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/250c_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/234h_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/251a_DC_LoD1_ctt/tileset.json",
+      "https://assets.yoolife.com.vn/GiangVo_citygml_ctt/234k_DC_LoD1_ctt/tileset.json",
+    ],
+    geojsonLayers: [
+      {
+        key: "water",
+        url: "https://assets.yoolife.com.vn/GiangVo_geojson/Giang%20Vo_TH.geojson",
+        color: "#38bdf8",
+        alpha: 0.5,
+      },
+      {
+        key: "vegetation",
+        url: "https://assets.yoolife.com.vn/GiangVo_geojson/Giang%20Vo_TV.geojson",
+        color: "#22c55e",
+        alpha: 0.4,
+      },
+      {
+        key: "transport",
+        url: "https://assets.yoolife.com.vn/GiangVo_geojson/Giang%20Vo_GT.geojson",
+        color: "#dd3636",
+        alpha: 0.5,
+      },
+      {
+        key: "residential",
+        url: "https://assets.yoolife.com.vn/GiangVo_geojson/Giang%20Vo_DC.geojson",
+        color: "#a78bfa",
+        alpha: 0.3,
+      },
+    ],
+    cameraApiUrl:
+      "https://apiihanoi.vtscloud.vn/api/device/devices/getCameraOfSite?page=1&size=100&sort=_updated_at&direction=desc&siteId=J3CVztgHVG",
+    showDashboard: true,
   },
 };

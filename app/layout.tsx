@@ -28,7 +28,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="https://cdn.yoolife.com.vn/yootek/1767942965992-6315.svg" />
+        <link rel="icon" href="/tab-logo.svg" />
         <link rel="stylesheet" href="/cesium/Widgets/widgets.css" />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
